@@ -1,4 +1,4 @@
-package com.codechallenge.speed_metrics.Controller.dtos.response;
+package com.codechallenge.speed_metrics.controller.dtos.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
