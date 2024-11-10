@@ -2,11 +2,12 @@ package com.codechallenge.speed_metrics.controller;
 
 import com.codechallenge.speed_metrics.controller.dtos.request.LineSpeedRequestDTO;
 import com.codechallenge.speed_metrics.controller.dtos.response.LineMetricsResponseDTO;
+import com.codechallenge.speed_metrics.facade.SpeedMetricFacade;
 import com.codechallenge.speed_metrics.service.model.LineModel;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,19 +19,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping(path = SpeedMetricController.ROOT_PATH)
 public class SpeedMetricController {
 
     public static final String ROOT_PATH = "/api/metrics";
     public static final String LINE_SPEED = "/linespeed";
 
+    private final SpeedMetricFacade speedMetricFacade;
     private final LineModel lineModel;
-
-    @Autowired
-    public SpeedMetricController(final LineModel lineModel) {
-
-        this.lineModel = lineModel;
-    }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
@@ -48,8 +45,12 @@ public class SpeedMetricController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } else if(recordOlderThan(lineSpeedRequestDTO.getTimestamp(),60)){
 
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            speedMetricFacade.submitLineSpeed(lineSpeedRequestDTO);
+
+            return new ResponseEntity(HttpStatus.NO_CONTENT);
         }
+
+        speedMetricFacade.submitLineSpeed(lineSpeedRequestDTO);
 
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
