@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,16 +30,22 @@ public class SpeedMetricController {
     private final SpeedMetricFacade speedMetricFacade;
     private final LineModel lineModel;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{lineId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    public List<LineMetricsResponseDTO> fetchLineMetrics() {
+    public ResponseEntity<List<LineMetricsResponseDTO>> fetchLineMetrics(
+        @PathVariable(required = false) final Long lineId) {
 
-        return List.of();
+        if (!lineModel.getId().contains(lineId)) {
+
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        return new ResponseEntity<>(speedMetricFacade.fetchLineMetrics(lineId), HttpStatus.OK);
     }
 
     @PostMapping(value = LINE_SPEED)
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity lineSpeed(@RequestBody final LineSpeedRequestDTO lineSpeedRequestDTO) {
+    public ResponseEntity<Object> lineSpeed(@RequestBody final LineSpeedRequestDTO lineSpeedRequestDTO) {
 
         if (!lineModel.getId().contains(lineSpeedRequestDTO.getLine_id())) {
 
@@ -47,7 +54,7 @@ public class SpeedMetricController {
 
             speedMetricFacade.submitLineSpeed(lineSpeedRequestDTO);
 
-            return new ResponseEntity(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
         speedMetricFacade.submitLineSpeed(lineSpeedRequestDTO);

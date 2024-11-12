@@ -2,6 +2,7 @@ package com.codechallenge.speed_metrics.service;
 
 import com.codechallenge.speed_metrics.service.model.request.LineSpeedRequestModel;
 import java.time.Instant;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +25,11 @@ public class SpeedMetricServiceImplTest {
     @Test
     public void submitRecord_recordIsPublishedOnFile() {
 
+        Random rd = new Random();
+
         final LineSpeedRequestModel model = LineSpeedRequestModel.builder()
             .line_id(1L)
-            .speed(35.5f)
+            .speed(rd.nextFloat())
             .timestamp(Instant.now().toEpochMilli())
             .build();
 

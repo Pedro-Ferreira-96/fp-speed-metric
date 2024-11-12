@@ -1,15 +1,7 @@
 package com.codechallenge.speed_metrics.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +44,17 @@ public class SpeedMetricControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload.toString()))
             .andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void fetchLineMetrics_withUnknownLine_returnsNotFound() throws Exception {
+
+        final long unknownLineId = 23L;
+
+        mvc.perform(MockMvcRequestBuilders.get(SpeedMetricController.ROOT_PATH)
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("lineId", Long.toString(unknownLineId)))
+            .andExpect(status().isNotFound());
     }
 
 }

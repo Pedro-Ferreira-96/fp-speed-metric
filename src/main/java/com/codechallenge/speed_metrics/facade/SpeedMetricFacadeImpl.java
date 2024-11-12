@@ -1,8 +1,13 @@
 package com.codechallenge.speed_metrics.facade;
 
 import com.codechallenge.speed_metrics.controller.dtos.request.LineSpeedRequestDTO;
+import com.codechallenge.speed_metrics.controller.dtos.response.LineMetricsResponseDTO;
+import com.codechallenge.speed_metrics.controller.dtos.response.MetricResponseDTO;
 import com.codechallenge.speed_metrics.service.SpeedMetricService;
 import com.codechallenge.speed_metrics.service.model.request.LineSpeedRequestModel;
+import com.codechallenge.speed_metrics.service.model.response.LineSpeedResponseModel;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +27,19 @@ public class SpeedMetricFacadeImpl implements SpeedMetricFacade{
             .build();
 
         speedMetricService.submitLineSpeed(lineSpeedRequestModel);
+    }
+
+    @Override
+    public List<LineMetricsResponseDTO> fetchLineMetrics(final Long lineId) {
+
+        final List<LineSpeedResponseModel> lineSpeedResponseModel = speedMetricService.fetchLineMetrics(lineId);
+
+        return lineSpeedResponseModel.stream()
+            .map(model -> LineMetricsResponseDTO.builder()
+                .line_id(model.getLine_id())
+                .metricResponseDTO(MetricResponseDTO.from(model.getMetricResponse()))
+                .build())
+            .collect(Collectors.toList());
     }
 
 }
