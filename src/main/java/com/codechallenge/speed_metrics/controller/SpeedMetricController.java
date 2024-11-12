@@ -3,7 +3,7 @@ package com.codechallenge.speed_metrics.controller;
 import com.codechallenge.speed_metrics.controller.dtos.request.LineSpeedRequestDTO;
 import com.codechallenge.speed_metrics.controller.dtos.response.LineMetricsResponseDTO;
 import com.codechallenge.speed_metrics.facade.SpeedMetricFacade;
-import com.codechallenge.speed_metrics.service.model.LineModel;
+import com.codechallenge.speed_metrics.service.model.LineConfig;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -28,14 +28,14 @@ public class SpeedMetricController {
     public static final String LINE_SPEED = "/linespeed";
 
     private final SpeedMetricFacade speedMetricFacade;
-    private final LineModel lineModel;
+    private final LineConfig lineConfig;
 
     @GetMapping(value = "/{lineId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<List<LineMetricsResponseDTO>> fetchLineMetrics(
         @PathVariable(required = false) final Long lineId) {
 
-        if (!lineModel.getId().contains(lineId)) {
+        if (!lineConfig.getId().contains(lineId)) {
 
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -47,7 +47,7 @@ public class SpeedMetricController {
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Object> lineSpeed(@RequestBody final LineSpeedRequestDTO lineSpeedRequestDTO) {
 
-        if (!lineModel.getId().contains(lineSpeedRequestDTO.getLine_id())) {
+        if (!lineConfig.getId().contains(lineSpeedRequestDTO.getLine_id())) {
 
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } else if(recordOlderThan(lineSpeedRequestDTO.getTimestamp(),60)){

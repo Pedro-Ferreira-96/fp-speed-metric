@@ -7,12 +7,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@EnableConfigurationProperties(LineModel.class)
+@EnableConfigurationProperties(LineConfig.class)
 @ConfigurationProperties(prefix = "known-lines")
 @Component
 @Getter
 @Setter
-public class LineModel {
+public class LineConfig {
 
     public List<Long> id;
 
