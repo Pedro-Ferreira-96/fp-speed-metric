@@ -22,29 +22,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import lombok.AllArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.springframework.stereotype.Service;
 
 @Service
+@AllArgsConstructor
 public class SpeedMetricServiceImpl implements SpeedMetricService {
 
-    private final String csvFile;
-    private final CSVFormat csvFormat;
-
+    private static final String[] HEADERS = {"line_id", "speed", "timestamp"};
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private static final ConcurrentHashMap<Long, LineSpeedMetricModel> METRICS_MAP = new ConcurrentHashMap<>();
 
-    public SpeedMetricServiceImpl(final CsvFileConfig csvFileConfig) {
-
-        this.csvFile = csvFileConfig.getPath();
-        final String[] headers = {"line_id", "speed", "timestamp"};
-        this.csvFormat = CSVFormat.DEFAULT.builder()
-            .setHeader(headers)
-            .setSkipHeaderRecord(fileExists(this.csvFile))
-            .setIgnoreHeaderCase(true)
-            .build();
-    }
+    private final CsvFileConfig csvFileConfig;
 
     @Override
     public void submitLineSpeed(final LineSpeedRequestModel lineSpeedRequestModel) {
@@ -70,7 +61,7 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
     @Override
     public List<LineSpeedResponseModel> fetchLineMetrics(final Long lineId, final Long timeInterval) {
 
-        if (!fileExists(csvFile)) {
+        if (!fileExists(csvFileConfig.getPath())) {
 
             throw new RuntimeException("File with line metrics does not exist");
         }
@@ -86,8 +77,14 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
     private void writeToCsv(final ConcurrentHashMap<Long, LineSpeedMetricModel> speedMetricRecord) throws IOException {
 
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
+            .setHeader(HEADERS)
+            .setSkipHeaderRecord(fileExists(csvFileConfig.getPath()))
+            .setIgnoreHeaderCase(true)
+            .build();
+
         final BufferedWriter writer = Files.newBufferedWriter(
-            Paths.get(csvFile),
+            Paths.get(csvFileConfig.getPath()),
             StandardOpenOption.APPEND,
             StandardOpenOption.CREATE);
 
@@ -115,7 +112,7 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         final List<List<String>> metrics = new ArrayList<>();
 
-        try (BufferedReader reader = Files.newBufferedReader(Paths.get(csvFile))) {
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(csvFileConfig.getPath()))) {
 
             String line;
 
