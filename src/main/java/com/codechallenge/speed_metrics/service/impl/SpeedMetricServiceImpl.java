@@ -55,6 +55,8 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
             lock.writeLock().unlock();
         }
+
+        METRICS_MAP.clear();
     }
 
     @Override
@@ -128,7 +130,9 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
         final List<LineSpeedResponseModel> result = new ArrayList<>();
 
         final List<List<String>> metricsWithinTheThreshold = readMetrics.stream()
+            .skip(1)
             .filter(metric -> !recordOlderThan(Long.valueOf(metric.get(2)), 60))
+            .filter(metric -> lineId == null || lineId.equals(Long.valueOf(metric.get(0))))
             .toList();
 
         Map<Long, List<Float>> groupedByLineId = new HashMap<>();
@@ -172,7 +176,7 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         Duration timeBetween = Duration.between(Instant.now(), Instant.ofEpochMilli(timestamp));
 
-        return timeBetween.toMinutes() < thresholdInMinutes;
+        return timeBetween.toMinutes() > thresholdInMinutes;
     }
 
     private LineSpeedResponseModel appendResultToModel(final Long lineId, final Float avg, final Float max,

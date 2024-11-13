@@ -13,6 +13,6 @@ public class LineMetricsResponseDTO {
 
     private Long line_id;
 
-    private MetricResponseDTO metricResponseDTO;
+    private MetricResponseDTO metrics;
 
 }

@@ -37,7 +37,7 @@ public class SpeedMetricFacadeImpl implements SpeedMetricFacade{
         return lineSpeedResponseModel.stream()
             .map(model -> LineMetricsResponseDTO.builder()
                 .line_id(model.getLine_id())
-                .metricResponseDTO(MetricResponseDTO.from(model.getMetricResponse()))
+                .metrics(MetricResponseDTO.from(model.getMetricResponse()))
                 .build())
             .collect(Collectors.toList());
     }

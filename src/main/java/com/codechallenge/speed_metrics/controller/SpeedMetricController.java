@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SpeedMetricController {
 
     public static final String ROOT_PATH = "/api/metrics";
-    public static final String LINE_SPEED = "/linespeed";
+    public static final String LINE_SPEED = "/line-speed";
 
     private final SpeedMetricFacade speedMetricFacade;
     private final LineConfig lineConfig;
@@ -66,7 +66,7 @@ public class SpeedMetricController {
 
         Duration timeBetween = Duration.between(Instant.now(), Instant.ofEpochMilli(timestamp));
 
-        return timeBetween.toMinutes() < thresholdInMinutes;
+        return timeBetween.toMinutes() > thresholdInMinutes;
     }
 
 }
