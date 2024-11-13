@@ -1,6 +1,7 @@
 package com.codechallenge.speed_metrics.service.impl;
 
 import com.codechallenge.speed_metrics.service.SpeedMetricService;
+import com.codechallenge.speed_metrics.service.config.CsvFileConfig;
 import com.codechallenge.speed_metrics.service.model.LineSpeedMetricModel;
 import com.codechallenge.speed_metrics.service.model.request.LineSpeedRequestModel;
 import com.codechallenge.speed_metrics.service.model.response.LineSpeedResponseModel;
@@ -28,15 +29,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class SpeedMetricServiceImpl implements SpeedMetricService {
 
+    private final String csvFile;
+    private final CSVFormat csvFormat;
+
     private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private static final String CSV_FILE = "src/main/resources/line_metrics.csv";
-    private static final String[] HEADERS = { "line_id", "speed", "timestamp"};
     private static final ConcurrentHashMap<Long, LineSpeedMetricModel> METRICS_MAP = new ConcurrentHashMap<>();
-    private static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.builder()
-        .setHeader(HEADERS)
-        .setSkipHeaderRecord(fileExists(CSV_FILE))
-        .setIgnoreHeaderCase(true)
-        .build();
+
+    public SpeedMetricServiceImpl(final CsvFileConfig csvFileConfig) {
+
+        this.csvFile = csvFileConfig.getPath();
+        final String[] headers = {"line_id", "speed", "timestamp"};
+        this.csvFormat = CSVFormat.DEFAULT.builder()
+            .setHeader(headers)
+            .setSkipHeaderRecord(fileExists(this.csvFile))
+            .setIgnoreHeaderCase(true)
+            .build();
+    }
 
     @Override
     public void submitLineSpeed(final LineSpeedRequestModel lineSpeedRequestModel) {
@@ -60,9 +68,9 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
     }
 
     @Override
-    public List<LineSpeedResponseModel> fetchLineMetrics(final Long lineId) {
+    public List<LineSpeedResponseModel> fetchLineMetrics(final Long lineId, final Long timeInterval) {
 
-        if (!fileExists(CSV_FILE)) {
+        if (!fileExists(csvFile)) {
 
             throw new RuntimeException("File with line metrics does not exist");
         }
@@ -73,17 +81,17 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         lock.readLock().unlock();
 
-        return computeMetrics(metrics, lineId);
+        return computeMetrics(metrics, lineId, timeInterval);
     }
 
     private void writeToCsv(final ConcurrentHashMap<Long, LineSpeedMetricModel> speedMetricRecord) throws IOException {
 
         final BufferedWriter writer = Files.newBufferedWriter(
-            Paths.get(CSV_FILE),
+            Paths.get(csvFile),
             StandardOpenOption.APPEND,
             StandardOpenOption.CREATE);
 
-        final CSVPrinter csvPrinter = new CSVPrinter(writer, CSV_FORMAT);
+        final CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat);
 
         try {
 
@@ -107,13 +115,13 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         final List<List<String>> metrics = new ArrayList<>();
 
-        try (BufferedReader reader = Files.newBufferedReader(Paths.get(CSV_FILE))) {
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(csvFile))) {
 
             String line;
 
             while ((line = reader.readLine()) != null) {
 
-                String[] values = line.split(",");
+                final String[] values = line.split(",");
                 metrics.add(Arrays.asList(values));
             }
 
@@ -125,22 +133,22 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
         return metrics;
     }
 
-    private List<LineSpeedResponseModel> computeMetrics(final List<List<String>> readMetrics ,final Long lineId) {
+    private List<LineSpeedResponseModel> computeMetrics(final List<List<String>> readMetrics, final Long lineId, final Long timeInterval) {
 
         final List<LineSpeedResponseModel> result = new ArrayList<>();
 
         final List<List<String>> metricsWithinTheThreshold = readMetrics.stream()
             .skip(1)
-            .filter(metric -> !recordOlderThan(Long.valueOf(metric.get(2)), 60))
+            .filter(metric -> !recordOlderThan(Long.valueOf(metric.get(2)), timeInterval))
             .filter(metric -> lineId == null || lineId.equals(Long.valueOf(metric.get(0))))
             .toList();
 
-        Map<Long, List<Float>> groupedByLineId = new HashMap<>();
+        final Map<Long, List<Float>> groupedByLineId = new HashMap<>();
 
         for (List<String> row : metricsWithinTheThreshold) {
 
-            Long currentLineId = Long.parseLong(row.get(0));
-            Float speed = Float.parseFloat(row.get(1));
+            final Long currentLineId = Long.parseLong(row.get(0));
+            final Float speed = Float.parseFloat(row.get(1));
 
             groupedByLineId
                 .computeIfAbsent(currentLineId, k -> new ArrayList<>())
@@ -149,15 +157,15 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         for (Map.Entry<Long, List<Float>> map : groupedByLineId.entrySet()) {
 
-            Long lineIdentifier = map.getKey();
-            List<Float> speedValues = map.getValue();
+            final Long lineIdentifier = map.getKey();
+            final List<Float> speedValues = map.getValue();
 
-            Float average = (float) speedValues.stream().mapToDouble(x -> x).average().getAsDouble();
-            Float max = (float) speedValues.stream().mapToDouble(x -> x).max().getAsDouble();
-            Float min = (float) speedValues.stream().mapToDouble(x -> x).min().getAsDouble();
+            final Long numberOfRecords = speedValues.stream().count();
+            final Float average = (float) speedValues.stream().mapToDouble(x -> x).average().getAsDouble();
+            final Float max = (float) speedValues.stream().mapToDouble(x -> x).max().getAsDouble();
+            final Float min = (float) speedValues.stream().mapToDouble(x -> x).min().getAsDouble();
 
-
-            final LineSpeedResponseModel model = appendResultToModel(lineIdentifier, average, max, min);
+            final LineSpeedResponseModel model = appendResultToModel(lineIdentifier, numberOfRecords, average, max, min);
 
             result.add(model);
         }
@@ -172,18 +180,21 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
         return Files.exists(convertedPath);
     }
 
-    private boolean recordOlderThan(final Long timestamp ,final Integer thresholdInMinutes) {
+    private boolean recordOlderThan(final Long timestamp ,final Long thresholdInMinutes) {
 
-        Duration timeBetween = Duration.between(Instant.now(), Instant.ofEpochMilli(timestamp));
+        final long nowInstant = Instant.now().toEpochMilli();
+
+        Duration timeBetween = Duration.between(Instant.ofEpochMilli(timestamp), Instant.ofEpochMilli(nowInstant));
 
         return timeBetween.toMinutes() > thresholdInMinutes;
     }
 
-    private LineSpeedResponseModel appendResultToModel(final Long lineId, final Float avg, final Float max,
+    private LineSpeedResponseModel appendResultToModel(final Long lineId, final Long numberOfRecords, final Float avg, final Float max,
         final Float min) {
 
         return LineSpeedResponseModel.builder()
             .line_id(lineId)
+            .numberOfRecords(numberOfRecords)
             .metricResponse(appendResultToMetricModel(avg, max, min))
             .build();
     }

@@ -6,8 +6,8 @@ import java.util.List;
 
 public interface SpeedMetricFacade {
 
-    void submitLineSpeed(LineSpeedRequestDTO lineSpeedRequestDTO);
+    void submitLineSpeed(final LineSpeedRequestDTO lineSpeedRequestDTO);
 
-    List<LineMetricsResponseDTO> fetchLineMetrics(Long lineId);
+    List<LineMetricsResponseDTO> fetchLineMetrics(final Long lineId, final Long timeInterval);
 
 }

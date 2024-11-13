@@ -13,6 +13,8 @@ public class LineSpeedResponseModel {
 
     private Long line_id;
 
+    private Long numberOfRecords;
+
     private MetricResponseModel metricResponse;
 
 }

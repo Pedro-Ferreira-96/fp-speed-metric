@@ -6,8 +6,8 @@ import java.util.List;
 
 public interface SpeedMetricService {
 
-    void submitLineSpeed(LineSpeedRequestModel lineSpeedRequestModel);
+    void submitLineSpeed(final LineSpeedRequestModel lineSpeedRequestModel);
 
-    List<LineSpeedResponseModel> fetchLineMetrics(Long lineId);
+    List<LineSpeedResponseModel> fetchLineMetrics(final Long lineId, final Long timeInterval);
 
 }

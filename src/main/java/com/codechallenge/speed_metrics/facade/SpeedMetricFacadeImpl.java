@@ -30,13 +30,14 @@ public class SpeedMetricFacadeImpl implements SpeedMetricFacade{
     }
 
     @Override
-    public List<LineMetricsResponseDTO> fetchLineMetrics(final Long lineId) {
+    public List<LineMetricsResponseDTO> fetchLineMetrics(final Long lineId, final Long timeInterval) {
 
-        final List<LineSpeedResponseModel> lineSpeedResponseModel = speedMetricService.fetchLineMetrics(lineId);
+        final List<LineSpeedResponseModel> lineSpeedResponseModel = speedMetricService.fetchLineMetrics(lineId, timeInterval);
 
         return lineSpeedResponseModel.stream()
             .map(model -> LineMetricsResponseDTO.builder()
                 .line_id(model.getLine_id())
+                .numberOfRecords(model.getNumberOfRecords())
                 .metrics(MetricResponseDTO.from(model.getMetricResponse()))
                 .build())
             .collect(Collectors.toList());

@@ -10,3 +10,5 @@ known-lines:
     - 8
     - 9
     - 10
+csv-file:
+  path: src/main/resources/line_metrics.csv
