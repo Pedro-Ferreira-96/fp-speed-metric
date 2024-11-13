@@ -4,6 +4,7 @@ import com.codechallenge.speed_metrics.service.SpeedMetricService;
 import com.codechallenge.speed_metrics.service.model.LineSpeedMetricModel;
 import com.codechallenge.speed_metrics.service.model.request.LineSpeedRequestModel;
 import com.codechallenge.speed_metrics.service.model.response.LineSpeedResponseModel;
+import com.codechallenge.speed_metrics.service.model.response.MetricResponseModel;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -11,9 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.csv.CSVFormat;
@@ -62,16 +67,16 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
         lock.readLock().lock();
 
-        List<List<String>> metrics = readFromCsv();
+        final List<List<String>> metrics = readFromCsv();
 
         lock.readLock().unlock();
 
-        return List.of();
+        return computeMetrics(metrics, lineId);
     }
 
     private void writeToCsv(final ConcurrentHashMap<Long, LineSpeedMetricModel> speedMetricRecord) throws IOException {
 
-        BufferedWriter writer = Files.newBufferedWriter(
+        final BufferedWriter writer = Files.newBufferedWriter(
             Paths.get(CSV_FILE),
             StandardOpenOption.APPEND,
             StandardOpenOption.CREATE);
@@ -98,7 +103,7 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
 
     private List<List<String>> readFromCsv() {
 
-        List<List<String>> metrics = new ArrayList<>();
+        final List<List<String>> metrics = new ArrayList<>();
 
         try (BufferedReader reader = Files.newBufferedReader(Paths.get(CSV_FILE))) {
 
@@ -118,11 +123,74 @@ public class SpeedMetricServiceImpl implements SpeedMetricService {
         return metrics;
     }
 
+    private List<LineSpeedResponseModel> computeMetrics(final List<List<String>> readMetrics ,final Long lineId) {
+
+        final List<LineSpeedResponseModel> result = new ArrayList<>();
+
+        final List<List<String>> metricsWithinTheThreshold = readMetrics.stream()
+            .filter(metric -> !recordOlderThan(Long.valueOf(metric.get(2)), 60))
+            .toList();
+
+        Map<Long, List<Float>> groupedByLineId = new HashMap<>();
+
+        for (List<String> row : metricsWithinTheThreshold) {
+
+            Long currentLineId = Long.parseLong(row.get(0));
+            Float speed = Float.parseFloat(row.get(1));
+
+            groupedByLineId
+                .computeIfAbsent(currentLineId, k -> new ArrayList<>())
+                .add(speed);
+        }
+
+        for (Map.Entry<Long, List<Float>> map : groupedByLineId.entrySet()) {
+
+            Long lineIdentifier = map.getKey();
+            List<Float> speedValues = map.getValue();
+
+            Float average = (float) speedValues.stream().mapToDouble(x -> x).average().getAsDouble();
+            Float max = (float) speedValues.stream().mapToDouble(x -> x).max().getAsDouble();
+            Float min = (float) speedValues.stream().mapToDouble(x -> x).min().getAsDouble();
+
+
+            final LineSpeedResponseModel model = appendResultToModel(lineIdentifier, average, max, min);
+
+            result.add(model);
+        }
+
+        return result;
+    }
+
     private static boolean fileExists(final String path) {
 
         final Path convertedPath = Paths.get(path);
 
         return Files.exists(convertedPath);
+    }
+
+    private boolean recordOlderThan(final Long timestamp ,final Integer thresholdInMinutes) {
+
+        Duration timeBetween = Duration.between(Instant.now(), Instant.ofEpochMilli(timestamp));
+
+        return timeBetween.toMinutes() < thresholdInMinutes;
+    }
+
+    private LineSpeedResponseModel appendResultToModel(final Long lineId, final Float avg, final Float max,
+        final Float min) {
+
+        return LineSpeedResponseModel.builder()
+            .line_id(lineId)
+            .metricResponse(appendResultToMetricModel(avg, max, min))
+            .build();
+    }
+
+    private MetricResponseModel appendResultToMetricModel(final Float avg, final Float max, final Float min) {
+
+        return MetricResponseModel.builder()
+            .avg(avg)
+            .max(max)
+            .min(min)
+            .build();
     }
 
 }

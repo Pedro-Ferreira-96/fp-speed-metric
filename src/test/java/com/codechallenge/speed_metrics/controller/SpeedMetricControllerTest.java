@@ -53,8 +53,16 @@ public class SpeedMetricControllerTest {
 
         mvc.perform(MockMvcRequestBuilders.get(SpeedMetricController.ROOT_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
-                .param("lineId", Long.toString(unknownLineId)))
+                .queryParam("lineId", Long.toString(unknownLineId)))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void fetchLineMetrics_withoutSpecifyingLine_returnsOk() throws Exception {
+
+        mvc.perform(MockMvcRequestBuilders.get(SpeedMetricController.ROOT_PATH)
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk());
     }
 
 }

@@ -1,7 +1,9 @@
 package com.codechallenge.speed_metrics.service;
 
 import com.codechallenge.speed_metrics.service.model.request.LineSpeedRequestModel;
+import com.codechallenge.speed_metrics.service.model.response.LineSpeedResponseModel;
 import java.time.Instant;
+import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +27,7 @@ public class SpeedMetricServiceImplTest {
     @Test
     public void submitRecord_recordIsPublishedOnFile() {
 
-        Random rd = new Random();
+        final Random rd = new Random();
 
         final LineSpeedRequestModel model = LineSpeedRequestModel.builder()
             .line_id(1L)
@@ -34,6 +36,16 @@ public class SpeedMetricServiceImplTest {
             .build();
 
         speedMetricService.submitLineSpeed(model);
+    }
+
+    @Test
+    public void fetchRecord_recordAreReadFromFile() {
+
+        final Long line_id = 1L;
+
+        final List<LineSpeedResponseModel> result = speedMetricService.fetchLineMetrics(line_id);
+
+        System.out.println("result: " + result);
     }
 
 }
